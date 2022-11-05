@@ -20,6 +20,7 @@ public class ConsumerService {
     @Autowired
     public ConsumerService(UserRepository userRepository) {
         this.userRepository = userRepository;
+        logger.info( "General listener started !");
     }
 
     @RabbitListener(queues = "${spring.rabbitmq.queue}")

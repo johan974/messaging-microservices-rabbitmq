@@ -1,24 +1,31 @@
 package com.github.pedroluiznogueira.microservices.messaging.config;
 
-import org.springframework.amqp.core.AmqpAdmin;
+import com.github.pedroluiznogueira.microservices.messaging.service.RabbitQueueServiceImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.annotation.RabbitListenerConfigurer;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
-import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.listener.RabbitListenerEndpointRegistrar;
 import org.springframework.amqp.rabbit.listener.RabbitListenerEndpointRegistry;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
-import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.handler.annotation.support.DefaultMessageHandlerMethodFactory;
 
+// Design: there is only 1 exchange point
 @Configuration
 public class RabbitMQConfig implements RabbitListenerConfigurer {
+    private static final Logger logger = LoggerFactory.getLogger(RabbitMQConfig.class);
 
     @Value("${spring.rabbitmq.host}")
     String host;
@@ -29,25 +36,22 @@ public class RabbitMQConfig implements RabbitListenerConfigurer {
     @Value("${spring.rabbitmq.password}")
     String password;
 
-    @Bean
-    CachingConnectionFactory connectionFactory() {
-        CachingConnectionFactory cachingConnectionFactory = new CachingConnectionFactory(host);
-        cachingConnectionFactory.setUsername(username);
-        cachingConnectionFactory.setPassword(password);
-        return cachingConnectionFactory;
+    final ConnectionFactory connectionFactory;
+
+    @Autowired
+    public RabbitMQConfig(ConnectionFactory connectionFactory) {
+        this.connectionFactory = connectionFactory;
     }
 
     @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
+    public RabbitTemplate rabbitTemplate() {
         final RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(producerJackson2MessageConverter());
         return rabbitTemplate;
     }
 
-    // Johan --- extra config beans
-    // Johan: added parameter: connectionFactory ... so I can use it in RabbitAdmin
     @Bean
-    public RabbitAdmin rabbitAdmin( ConnectionFactory connectionFactory) {
+    public RabbitAdmin rabbitAdmin() {
         return new RabbitAdmin(connectionFactory);
     }
 
@@ -71,17 +75,24 @@ public class RabbitMQConfig implements RabbitListenerConfigurer {
         factory.setMessageConverter(consumerJackson2MessageConverter());
         return factory;
     }
+
 //    @Bean
-//    public MessageConverter jsonMessageConverter() {
-//        return new Jackson2JsonMessageConverter();
+//    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+//    public SimpleMessageListenerContainer createContainerForQueueListener(ConnectionFactory connectionFactory,
+//                                                                          Queue queue, String aboName) {
+//        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(connectionFactory);
+//        container.setQueues(queue);
+//        container.setMessageListener(msg -> logger.info( "Abo {} with Message {}", aboName, msg);
+//        return container;
 //    }
+
     @Override
     public void configureRabbitListeners(final RabbitListenerEndpointRegistrar registrar) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setPrefetchCount(1);
         factory.setConsecutiveActiveTrigger(1);
         factory.setConsecutiveIdleTrigger(1);
-        factory.setConnectionFactory(connectionFactory());
+        factory.setConnectionFactory(connectionFactory);
         registrar.setContainerFactory(factory);
         registrar.setEndpointRegistry(rabbitListenerEndpointRegistry());
         registrar.setMessageHandlerMethodFactory(messageHandlerMethodFactory());

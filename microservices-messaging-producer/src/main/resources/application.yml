@@ -8,5 +8,6 @@ spring:
     username: guest
     exchange: user.exchange
     routingkey: user.routingkey
+    queue: user.queue
 server:
   port: 8081

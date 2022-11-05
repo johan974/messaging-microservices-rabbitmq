@@ -26,4 +26,8 @@ public class ProducerService {
         rabbitTemplate.convertAndSend(exchange,routingkey, user);
     }
 
+    public void sendMessage(User user, String exchangeName, String routingkey) {
+        rabbitTemplate.convertAndSend(exchangeName,routingkey, user);
+    }
+
 }

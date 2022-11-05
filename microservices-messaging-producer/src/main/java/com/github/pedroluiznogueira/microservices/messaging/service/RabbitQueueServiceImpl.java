@@ -1,15 +1,12 @@
 package com.github.pedroluiznogueira.microservices.messaging.service;
 
 import com.google.gson.Gson;
-import org.apache.tomcat.util.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.rabbit.annotation.RabbitListenerConfigurer;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer;
-import org.springframework.amqp.rabbit.listener.RabbitListenerEndpointRegistrar;
 import org.springframework.amqp.rabbit.listener.RabbitListenerEndpointRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -34,43 +31,43 @@ public class RabbitQueueServiceImpl implements RabbitQueueService {
         );
         rabbitAdmin.declareQueue(queue);
         rabbitAdmin.declareBinding(binding);
-        this.addQueueToListener(exchangeName,queueName);
+        addQueueToListener(exchangeName, queueName);
     }
 
     @Override
     public void addQueueToListener(String listenerId, String queueName) {
-        log.info("adding queue : " + queueName + " to listener with id : " + listenerId);
-        if (!checkQueueExistOnListener(listenerId,queueName)) {
+        log.info("adding queue : {} to listener with id : {}", queueName, listenerId);
+        if (Boolean.FALSE.equals(checkQueueExistOnListener(listenerId, queueName))) {
             this.getMessageListenerContainerById(listenerId).addQueueNames(queueName);
             log.info("queue ");
         } else {
-            log.info("given queue name : " + queueName + " not exist on given listener id : " + listenerId);
+            log.info("given queue name : {} not exist on given listener id : {}", queueName, listenerId);
         }
     }
 
     @Override
     public void removeQueueFromListener(String listenerId, String queueName) {
-        log.info("removing queue : " + queueName + " from listener : " + listenerId);
-        if (checkQueueExistOnListener(listenerId,queueName)) {
+        log.info("removing queue : {} from listener : {}", queueName, listenerId);
+        if (Boolean.TRUE.equals(checkQueueExistOnListener(listenerId, queueName))) {
             this.getMessageListenerContainerById(listenerId).removeQueueNames(queueName);
             log.info("deleting queue from rabbit management");
             this.rabbitAdmin.deleteQueue(queueName);
         } else {
-            log.info("given queue name : " + queueName + " not exist on given listener id : " + listenerId);
+            log.info("given queue name : {} not exist on given listener id : {}", queueName, listenerId);
         }
     }
 
     @Override
     public Boolean checkQueueExistOnListener(String listenerId, String queueName) {
         try {
-            log.info("checking queueName : " + queueName + " exist on listener id : " + listenerId);
+            log.info("checking queueName : {} exist on listener id : {}", queueName, listenerId);
             log.info("getting queueNames");
             String[] queueNames = this.getMessageListenerContainerById(listenerId).getQueueNames();
-            log.info("queueNames : " + new Gson().toJson(queueNames));
-            if (queueNames != null) {
-                log.info("checking " + queueName + " exist on active queues");
+            log.info("queueNames : {}", new Gson().toJson(queueNames));
+            if (queueNames != null && queueName.length() > 0) {
+                log.info("checking {} exist on active queues", queueName);
                 for (String name : queueNames) {
-                    log.info("name : " + name + " with checking name : " + queueName);
+                    log.info("name : {} with checking name: {} ", name, queueName);
                     if (name.equals(queueName)) {
                         log.info("queue name exist on listener, returning true");
                         return Boolean.TRUE;
@@ -83,14 +80,12 @@ public class RabbitQueueServiceImpl implements RabbitQueueService {
             }
         } catch (Exception e) {
             log.error("Error on checking queue exist on listener");
-            log.error( ">> moren info", e);
-//            log.error("error message : " + ExceptionUtils.getMessage(e));
-//            log.error("trace : " + ExceptionUtils.getStackTrace(e));
+            log.error(">> moren info", e);
             return Boolean.FALSE;
         }
     }
 
-    private AbstractMessageListenerContainer getMessageListenerContainerById(String listenerId) {
+    public AbstractMessageListenerContainer getMessageListenerContainerById(String listenerId) {
         log.info("getting message listener container by id : " + listenerId);
         return ((AbstractMessageListenerContainer) this.rabbitListenerEndpointRegistry
                 .getListenerContainer(listenerId)

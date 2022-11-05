@@ -21,3 +21,12 @@ as a Docker container.
   - Type: POST
   - Body: raw > json > { "userId":"ID1", "userName":"johan" }
 - Je ziet in RabbitMQ console dat er een bericht gestuurd is
+
+# Dynamic queues
+- Start only the Producer (message sub project)
+- Postman: http://localhost:8081/api/addqueue
+  - Type: POST
+  - Body: raw > json > { "queueName":"dynaqueue1", "bindingKey":"abo1" }
+- Postman: http://localhost:8081/api/produceforqueue
+  - Type: POST
+  - Body: raw > json > { "routingKey":"abo1", "message": { "userId":"ID1", "userName":"johan" } }
