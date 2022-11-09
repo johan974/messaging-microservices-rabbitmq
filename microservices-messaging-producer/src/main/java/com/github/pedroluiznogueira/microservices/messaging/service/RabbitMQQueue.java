@@ -1,4 +1,4 @@
-package com.github.pedroluiznogueira.microservices.messaging.domain;
+package com.github.pedroluiznogueira.microservices.messaging.service;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +9,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Setter
 @Getter
-public class MessageForQueue {
-    private String queueName;
-    private String message;
+public class RabbitMQQueue {
+    private String name;
+    private boolean durable;
 }
